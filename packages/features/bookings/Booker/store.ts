@@ -455,7 +455,18 @@ export const createBookerStore = () =>
       }
       return set({ layout });
     },
-    selectedDate: getValidDate(getQueryParam("date")),
+    selectedDate: (() => {
+      const rawDate = getQueryParam("date");
+      const validDate = getValidDate(rawDate);
+      if (typeof window !== "undefined" && rawDate && rawDate !== validDate) {
+        if (!validDate) {
+          removeQueryParam("date");
+        } else {
+          updateQueryParam("date", validDate);
+        }
+      }
+      return validDate;
+    })(),
     setSelectedDate: ({ date: selectedDate, omitUpdatingParams = false, preventMonthSwitching = false }) => {
       // unset selected date
       if (!selectedDate) {
@@ -518,10 +529,18 @@ export const createBookerStore = () =>
     setVerificationCode: (code: string | null) => {
       set({ verificationCode: code });
     },
-    month:
-      getValidMonth(getQueryParam("month")) ||
-      (getValidDate(getQueryParam("date")) ? dayjs(getQueryParam("date")).format("YYYY-MM") : null) ||
-      dayjs().format("YYYY-MM"),
+    month: (() => {
+      const rawMonth = getQueryParam("month");
+      let validMonth = getValidMonth(rawMonth);
+      if (!validMonth) {
+        const validDate = getValidDate(getQueryParam("date"));
+        validMonth = validDate ? dayjs(validDate).format("YYYY-MM") : dayjs().format("YYYY-MM");
+      }
+      if (typeof window !== "undefined" && rawMonth && rawMonth !== validMonth) {
+        updateQueryParam("month", validMonth);
+      }
+      return validMonth;
+    })(),
     setMonth: (month: string | null) => {
       if (!month) {
         removeQueryParam("month");
